@@ -232,57 +232,14 @@ public:
 
 int main() {
     RedBlackTree Tree = RedBlackTree();
-    setlocale(LC_ALL, "ru");
-    int a;
-    cout << "Введите 10 чисел для заполнения дерева: ";
     for (int i = 1; i <= 10; i++) {
-        cin >> a;
-        Tree.insert(a);
+        //Tree.insert(0);
     }
     Tree.printTree();
-    int com = 0;
-    while (true) {
-        cout << "\n\nСписок команд: " << endl
-            << " - Вставка элемента (1)" << endl
-            << " - Симметричный обход (2)" << endl
-            << " - Обход в ширину (3)" << endl
-            << " - Сумма значений листьев (4)" << endl
-            << " - Среднее арифметическое узлов (5)" << endl
-            << " - Упорядоченный вывод (6)" << endl
-            << " - Для выхода нажмите 0" << endl << endl;
-        cout << "Команда: ";
-        cin >> com;
-        if (com == 0) break;
-        if (com == 1) {
-            int a;
-            cout << "Введите значение элемента: ";
-            cin >> a;
-            Tree.insert(a);
-        }
-        if (com == 2) {
-            cout << "Симметричный обход: ";
-            Tree.inOrder(Tree.getRoot());
-            cout << endl;
-        }
-        if (com == 3) {
-            cout << "Обход в ширину: ";
-            Tree.breadthFirstSearch(Tree.getRoot());
-            cout << endl;
-        }
-        if (com == 4) {
-            int s = Tree.sumOfLeaves(Tree.getRoot());
-            cout << "сумма листьев равна " << s << endl;
-        }
-        if (com == 5) {
-            try {
-                cout << "Среднее арифметическое узлов равно " << Tree.averageOfTree(Tree.getRoot()) << endl;
-            }
-            catch (const logic_error e) {
-                cerr << e.what();
-            }
-        }
-        if (com == 6) {
-            Tree.printTree();
-        }
+    try {
+        cout << Tree.averageOfTree(Tree.getRoot());
+    }
+    catch (const logic_error e) {
+        cerr << e.what();
     }
 }
