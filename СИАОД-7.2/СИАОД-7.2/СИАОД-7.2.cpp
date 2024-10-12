@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -100,7 +101,6 @@ public:
                 if (adjacencyMatrix[i][j] > 0) {
                     addEdge(i, j, adjacencyMatrix[i][j]);
                 }
-                cout << i;
             }
         }
     }
