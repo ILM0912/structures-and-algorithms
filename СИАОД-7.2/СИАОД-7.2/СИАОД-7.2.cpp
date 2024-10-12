@@ -1,8 +1,5 @@
 ﻿#include <iostream>
 #include <vector>
-#include <queue>
-#include <algorithm>
-#include <limits>
 
 using namespace std;
 
@@ -18,14 +15,16 @@ struct Edge {
 class Graph {
 private:
     vector<vector<Edge>> adjacencyList;
+    vector<vector<int>> adjacencyMatrix;
 public:
     Graph(int vertices) {
         adjacencyList.resize(vertices);
+        adjacencyMatrix.resize(vertices, vector<int>(vertices, 0));
     }
 
     Graph() {
         adjacencyList.resize(8);
-        int adjacencyMatrix[8][8] = {
+        this->adjacencyMatrix = {
             {-1, 23, 12,  0,  0,  0,  0,  0},
             {23, -1, 25,  0, 22,  0,  0, 35},
             {12, 25, -1, 18,  0,  0,  0,  0},
@@ -47,6 +46,17 @@ public:
     void addEdge(int from, int to, int weight) {
         adjacencyList[from].push_back({ to, weight });
         adjacencyList[to].push_back({from, weight});
+    }
+
+    void saveEdgeForReset(int from, int to, int weight) {
+        adjacencyMatrix[from][to] = weight;
+        adjacencyMatrix[to][from] = weight;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                cout << adjacencyMatrix[i][j];
+            }
+            cout << endl;
+        }
     }
 
     int getWeight(int u, int v) { //вес ребра между u и v
@@ -82,33 +92,22 @@ public:
     }
 
     void resetGraph() {
-        // Восстанавливаем все удаленные ребра до первоначального состояния
         for (int i = 0; i < adjacencyList.size(); ++i) {
-            adjacencyList[i].clear(); // Очищаем список ребер
+            adjacencyList[i].clear();
         }
-
-        // Заново добавляем ребра в граф, исходя из начальной конфигурации или матрицы смежности
-        int adjacencyMatrix[8][8] = {
-            {-1, 23, 12,  0,  0,  0,  0,  0},
-            {23, -1, 25,  0, 22,  0,  0, 35},
-            {12, 25, -1, 18,  0,  0,  0,  0},
-            { 0,  0, 18, -1,  0, 20,  0,  0},
-            { 0, 22,  0,  0, -1, 23, 14,  0},
-            { 0,  0,  0, 20, 23, -1, 24,  0},
-            { 0,  0,  0,  0, 14, 24, -1, 16},
-            { 0, 35,  0,  0,  0,  0, 16, -1}
-        };
-
-        for (int i = 0; i < 8; ++i) {
-            for (int j = i; j < 8; ++j) {
+        for (int i = 0; i < this->size(); ++i) {
+            for (int j = i; j < this->size(); ++j) {
                 if (adjacencyMatrix[i][j] > 0) {
                     addEdge(i, j, adjacencyMatrix[i][j]);
                 }
+                cout << i;
             }
         }
     }
 
-
+    int size() {
+        return adjacencyList.size();
+    }
 
     void printGraph() {
         for (int i = 0; i < adjacencyList.size(); i++) {
@@ -136,7 +135,7 @@ public:
                 //новый путь через вершину u короче текущего расстояния до соседней вершины
                 if (!visited[neighbor.to] && distance[u] != INF && distance[u] + neighbor.weight < distance[neighbor.to]) {
                     distance[neighbor.to] = distance[u] + neighbor.weight;
-                    parent[neighbor.to] = u; // Сохраняем предыдущую вершину для вершины neighbor.to
+                    parent[neighbor.to] = u; //сохраняем предыдущую вершину для вершины neighbor.to
                 }
             }
         }
@@ -149,7 +148,7 @@ public:
         }
 
         reverse(shortestPath.begin(), shortestPath.end());
-        if (shortestPath.size() < 2) return vector<int>();
+        if (shortestPath.size() < 2) return {};
         return shortestPath;
     }
 
@@ -181,10 +180,13 @@ public:
         return totalCost;
     }
 
-
     vector<vector<int>> YenKSP(int startVertex, int finishVertex, int K) {
         vector<vector<int>> shortestPaths;
         shortestPaths.push_back(dijkstra(startVertex, finishVertex));
+        if (shortestPaths[0].size() == 0) {
+            cout << "Нет пути между точками " << startVertex+1 << " - " << finishVertex+1 << endl;
+            return {};
+        }
         vector<vector<int>> potentialKSP;
         for (int k = 1; k < K; k++) {
             for (int i = 0; i < shortestPaths[k - 1].size() - 1; i++) {
@@ -192,47 +194,38 @@ public:
                 vector<int> rootPath(shortestPaths[k - 1].begin(), shortestPaths[k - 1].begin() + i + 1);
                 for (vector<int> p : shortestPaths) {
                     if (rootPath.size() < p.size() && equal(rootPath.begin(), rootPath.end(), p.begin(), p.begin() + rootPath.size())) {
-                        // Удаление ребер, принадлежащих предыдущим кратчайшим путям с тем же rootPath
                         for (size_t j = 0; j < rootPath.size(); j++) {
                             int u = p[j];
                             int v = p[j + 1];
                             removeEdge(u, v);
                         }
-                        // Удаление узлов rootPathNode из графа, за исключением spurNode
                         for (int node : rootPath) {
                             if (node != spurNode) {
-                                // Удаление узла node из графа
                                 removeNode(node);
                             }
                         }
                     }
                 }
-
-                // Вычисление пути от "шпоры" до стока
+                //путь ветвления
                 vector<int> spurPath = dijkstra(spurNode, finishVertex);
                 resetGraph();
                 if (spurPath.size() == 0) continue; //не найден путь
-                // Объединение пути rootPath и spurPath
+                //totalPath - найденный путь
                 vector<int> totalPath = rootPath;
                 totalPath.insert(totalPath.end(), spurPath.begin()+1, spurPath.end());
-                vector<int> path = totalPath;
-                // Добавление потенциального K-го кратчайшего пути в B
                 if (find(potentialKSP.begin(), potentialKSP.end(), totalPath) == potentialKSP.end()) {
                     potentialKSP.push_back(totalPath);
                 }
             }
-            if (potentialKSP.empty()) { // Если B пуст, значит больше нет шпорных путей
+            if (potentialKSP.empty()) {
                 break;
             }
-            // Сортировка потенциальных K-ых путей по стоимости
+            //сортировка потенциальных K-ых путей по длине пути
             sort(potentialKSP.begin(), potentialKSP.end(), [&](const vector<int>& a, const vector<int>& b) {
-                // Сравнение стоимости путей - можно использовать вес ребер
                 return calculatePathCost(a) < calculatePathCost(b);
                 });
 
-            // Добавление самого дешевого пути из B в A
             shortestPaths.push_back(potentialKSP[0]);
-            // Удаление первого пути из B
             potentialKSP.erase(potentialKSP.begin());
         }
         printYenKShortestPaths(shortestPaths);
@@ -257,14 +250,14 @@ public:
 int main() {
     setlocale(LC_ALL, "ru");
     int style = 0;
+    Graph graph;
     while (style != 1 && style != 2) {
         cout << "Использовать готовый граф, или создать новый?\n(Готовый)-1\n(Новый)-2\n\n";
         cin >> style;
         cout << endl;
     }
     if (style == 1) {
-        Graph graph = Graph();
-        graph.YenKSP(0, 7, 20);
+        graph = Graph();
     }
     if (style == 2) {
         int vertices, edges;
@@ -274,7 +267,7 @@ int main() {
             cout << "Число вершин не может быть меньше 1";
             cin >> vertices;
         }
-        Graph graph = Graph(vertices);
+        graph = Graph(vertices);
         cout << "Введите количество ребер: ";
         cin >> edges;
         cout << "Введите ребра (from to weight):" << endl;
@@ -282,10 +275,27 @@ int main() {
         for (int i = 0; i < edges; i++) {
             int from, to, weight;
             cin >> from >> to >> weight;
+            graph.saveEdgeForReset(from - 1, to - 1, weight);
             graph.addEdge(from-1, to-1, weight);
         }
-        graph.printGraph();
-        graph.dijkstra(1, 3);
     }
     
+    int start = 0;
+    while (!(start >= 1 && start <= graph.size())) {
+        cout << "Введите стартовуй точку (1 <= start <= " << graph.size() << "): ";
+        cin >> start;
+    }
+
+    int finish = 0;
+    while (!(finish >= 1 && finish <= graph.size() && finish!=start)) {
+        cout << "Введите конечную точку (1 <= finish <= " << graph.size() << "): ";
+        cin >> finish;
+    }
+
+    int k = 0;
+    while (k < 1) {
+        cout << "Введите требуемое количество путей (k>1): ";
+        cin >> k;
+    }
+    graph.YenKSP(start - 1, finish - 1, k);
 }
